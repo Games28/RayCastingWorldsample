@@ -212,10 +212,12 @@ protected:
 			break;
 		}
 	}
-
-private:
+public:
 	std::string sMap;
 	olc::vi2d vWorldSize;
+
+private:
+	
 	olc::Renderable gfxWall;
 	olc::Renderable gfxFloor;
 	olc::Renderable gfxbuilding;
@@ -409,44 +411,55 @@ public:
 		float depth = ScreenWidth();
 		float reticlelimit = 0.2356f;
 		float Rfov = 0.39;
+		bool outofbounds = false;
+		float nextstep = 1.0f;
+		float step = 0.0f;
+
+
+		for (float x = 0.01; x < Rfov; x++)
+		{
+			// For each column, calculate the projected ray angle into world space
+			float fRayAngle = (player->fHeading - Rfov / 2.0f) + (x / Rfov) * Rfov;
 		
-			//raycast attempt
-			for (float x = 0.1; x < Rfov; x++)
+			// Find distance to wall
+			float fStepSize = 0.01f;		  // Increment size for ray casting, decrease to increase										
+			float fDistanceToWall = 0.0f; //                                      resolution
+		
+			bool bHitWall = false;		// Set when ray hits wall block
+			bool bBoundary = false;		// Set when ray hits boundary between two wall blocks
+		
+			float fEyeX = sinf(fRayAngle); // Unit vector for ray in player space
+			float fEyeY = cosf(fRayAngle);
+		
+			// Incrementally cast ray from player, along ray angle, testing for 
+			// intersection with a block
+			while (!objectHit && !outofbounds)
 			{
-				float frayangle = (player->fHeading - Rfov / 2.0f) + (float)x / Rfov;
-				float nextstep = 0.1f;
-				float step = 0.0f;
-				
-				bool boudary = false;
-				float feyex = sinf(frayangle);
-				float feyey = cosf(frayangle);
-				while (!objectHit)
+				fDistanceToWall += fStepSize;
+				int nTestX = (int)(player->pos.x + fEyeX * fDistanceToWall);
+				int nTestY = (int)(player->pos.y + fEyeY * fDistanceToWall);
+		
+				// Test if ray is out of bounds
+				if (nTestX < 0 || nTestX >= pGame->vWorldSize.x || nTestY < 0 || nTestY >= pGame->vWorldSize.y)
 				{
-			
-			
-					step += nextstep;
-					//int fovleft = (int)(player->fHeading + eyex )
-					float ntestx = player->fHeading + feyex * step;
-					float ntesty = player->fHeading + feyey * step;
-			
-					if ((int)ntestx < 0 || (int)ntestx >= ScreenWidth() || (int)ntesty < 0 || (int)ntesty >= ScreenHeight())
-					{
-						break;
-					}
-			
-					if ((int)ntestx == (int)object->pos.x && (int)ntesty == (int)object->pos.y)
+					outofbounds = true;
+				}
+				else
+				{
+					// Ray is inbounds so test to see if the ray cell is a wall block
+					if (pGame->sMap[nTestY * pGame->vWorldSize.x + nTestX] == 's')
 					{
 						objectHit = true;
-						
+		
 					}
-					else
-					{
+					else {
 						objectHit = false;
 					}
-			
 				}
-			
 			}
+		
+		}
+	
 		
 	}
 
